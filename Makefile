@@ -1,6 +1,8 @@
 SRCPATH=src
-MAIN=$(SRCPATH)/main.cpp
+WRESTD=wrestd/Code
+FILES=$(SRCPATH)/*.cpp $(WRESTD)/*.cpp
 EXECUTABLE=itti
+STD=-std=c++14
 
 all:
-	g++ -O $(MAIN) -o $(EXECUTABLE) -I $(SRCPATH)
+	g++ -O $(FILES) -o $(EXECUTABLE) -I $(SRCPATH) -I $(WRESTD) $(STD)
