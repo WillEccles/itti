@@ -56,12 +56,12 @@ namespace wrestd {
 			WHITE = 15,
 			DEFAULT = WHITE
 		};
-		void printc(std::string, color_t);
-		void printlc(std::string, color_t);
+		void printc(std::string, color_t, color_t);
+		void printlc(std::string, color_t, color_t);
 		void clear();
-		void wait(color_t);
-		void wait(std::string, color_t);
-		void setColor(color_t);
+		void wait(color_t, color_t);
+		void wait(std::string, color_t, color_t);
+		void setColor(color_t, color_t);
 		bool fileExists(char[]);
 	};
 	
