@@ -5,6 +5,8 @@
 #include <string>
 #include <regex>
 #include <vector>
+#include <iomanip>
+#include <stdio.h>
 
 using namespace wrestd::io;
 
@@ -44,6 +46,20 @@ int main(void) {
 		info.erase(0, pos + delimiter.length());
 	}
 	songparts.push_back(info); // this gets the very last element
+
+	// print out a top bar
+	std::string bar(termWidth(), ' '); // filled with spaces
+	// centered itti
+	int nameIndex = (termWidth()/2)-2;
+	bar.replace(nameIndex, 4, "itti");
+	
+	clear();
+
+	printlc(bar, YELLOW, BLACK);
+
+	// set precision to a fixed 2 decimal places
+	std::cout.precision(2);
+	std::cout << std::fixed;
 	
 	// for debug purposes, show the info
 	std::cout << "Name:     " << songparts[0] << std::endl;
@@ -51,6 +67,15 @@ int main(void) {
 	std::cout << "Album:    " << songparts[2] << std::endl;
 	std::cout << "Duration: " << songparts[3] << std::endl;
 	std::cout << "Position: " << songparts[4] << std::endl;
+	
+	// figure out how far along the song is
+	double p = (std::stod(songparts[4])/std::stod(songparts[3]))*100.0;
+	std::cout << "Percent:  " << p << std::endl;
+
+	// for testing, at the moment.
+	std::cout << "Height: " << termHeight() << " rows.\n";
+	std::cout << "Width:  " << termWidth() << " columns.\n";
+	
 
 	return 0;
 }

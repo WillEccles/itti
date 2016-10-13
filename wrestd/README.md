@@ -36,6 +36,6 @@ int main() {
 | `wrestd::threading` | N/A for now | Contains thread-related methods. |
 
 ## Cross-platform
-This should be cross-platform, at least as much as possible. For example, in `wrestd::io::setcolor()`, it will only do that if on Windows, and if you aren't, it will simply print it in normal colors.
+This should be cross-platform, at least as much as possible.
 
 **Note:** I have not tested cross-platform compatibility much. If something does not work, feel free to make a pull request with a fix and (obviously) create an issue - I'll get there when I can.

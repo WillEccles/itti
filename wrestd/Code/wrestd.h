@@ -54,15 +54,30 @@ namespace wrestd {
 			MAGENTA = 13,
 			YELLOW = 14,
 			WHITE = 15,
-			DEFAULT = WHITE
+			DEFAULT = WHITE,
+			NOBG = 49,
+			NOFG = 39
 		};
-		void printc(std::string, color_t, color_t);
-		void printlc(std::string, color_t, color_t);
+		enum format_t {
+			NORMAL = 22,
+			BOLD = 1,
+			ITALIC = 3,
+			FAINT = 2,
+			UNDERLINE = 4,
+			BLINK = 5,
+			INVERTED = 7,
+			RESET = 0
+		};
+		void printc(std::string, color_t, color_t = NOBG);
+		void printlc(std::string, color_t, color_t = NOBG);
 		void clear();
-		void wait(color_t, color_t);
-		void wait(std::string, color_t, color_t);
-		void setColor(color_t, color_t);
+		void wait(color_t = DEFAULT, color_t = NOBG);
+		void wait(std::string, color_t = DEFAULT, color_t = NOBG);
+		void setColor(color_t, color_t = NOBG);
 		bool fileExists(char[]);
+		int termHeight();
+		int termWidth();
+		void setFormat(format_t);
 	};
 	
 	/* Handles threading-related functions, including execution times and such. */
