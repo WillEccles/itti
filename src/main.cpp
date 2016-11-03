@@ -10,15 +10,9 @@
 #include <unistd.h> // sleep()
 #include <curses.h> // this should make the development easier
 #include <algorithm>
-#include "itunescommands.h"
+#include "itunescommands.h" // itunes commands
 
 using namespace wrestd::io;
-
-// Info of the song:
-// all numbers are in fractional seconds
-// "[songname]SONG_PART_DELIM[artist]SONG_PART_DELIM[album]SONG_PART_DELIM[duration]SONG_PART_DELIM[position]" is returned.
-// duration will be the total seconds, position = how many seconds into the song you are
-const char* songInfoCommand = "osascript -e 'tell app \"itunes\" to set theInfo to {name, artist, album, duration} of current track & {player position}' -e \"set AppleScript's text item delimiters to \\\"SONG_PART_DELIM\\\"\" -e 'set theInfoString to theInfo as string'";
 
 int main(void) {
 	WINDOW *mainwin;
@@ -38,12 +32,12 @@ int main(void) {
 		// init(pair number, foreground, background)
 
 		init_pair(1, COLOR_BLACK, COLOR_YELLOW);
-		init_pair(2, COLOR_YELLOW
+		init_pair(2, COLOR_YELLOW, COLOR_BLACK);
 	}
 
 	std::string info;
 	int child_stdout = -1;
-	pid_t child_pid = openChildProc(songInfoCommand, 0, &child_stdout);
+	pid_t child_pid = openChildProc(SONG_INFO, 0, &child_stdout);
 	if (!child_pid)
 		std::cout << "A thing went wrong D:\n";
 	else {

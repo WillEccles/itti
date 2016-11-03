@@ -1,2 +1,2 @@
-itti
-*.xcworkspace
+#ignore Xcode's build stuff
+Build
