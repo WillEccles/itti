@@ -1,7 +1,7 @@
 SRCPATH=src
 WRESTD=wrestd/Code
 FILES=$(SRCPATH)/*.cpp $(WRESTD)/*.cpp
-EXECUTABLE=itti
+EXECUTABLE=ittimain
 STD=-std=c++14
 
 all:

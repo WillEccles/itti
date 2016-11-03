@@ -1,14 +1,16 @@
 #include <iostream>
 #include "wrestd.h"
 #include <thread>
-#include "readprocess.h"
+#include "readprocess.h" // getting song info
 #include <string>
 #include <regex>
 #include <vector>
-#include <iomanip>
+#include <iomanip> // for manipulating iostreams
 #include <stdio.h>
 #include <unistd.h> // sleep()
+#include <curses.h> // this should make the development easier
 #include <algorithm>
+#include "itunescommands.h"
 
 using namespace wrestd::io;
 
@@ -18,33 +20,27 @@ using namespace wrestd::io;
 // duration will be the total seconds, position = how many seconds into the song you are
 const char* songInfoCommand = "osascript -e 'tell app \"itunes\" to set theInfo to {name, artist, album, duration} of current track & {player position}' -e \"set AppleScript's text item delimiters to \\\"SONG_PART_DELIM\\\"\" -e 'set theInfoString to theInfo as string'";
 
-void setupDisplay() {
-	// print out a top bar
-	std::string bar(termWidth(), ' '); // filled with spaces
-	// centered itti
-	int nameIndex = (termWidth()/2)-2;
-	bar.replace(nameIndex, 4, "itti");
-	clear();
-
-	printlc(bar, YELLOW, BLACK);
-
-	// hide cursor?
-	printf("\033[?25l");
-}
-
-void scrollText(std::string text) {
-	std::string output = text;
-	std::cout << output;
-	sleep(3);
-	for (int i = 0; i < output.length(); i++) {
-		printf("\033[1G"); // reset cursor to column 1
-		std::rotate(output.begin(), output.begin() + 1, output.end());
-		std::cout << output;
-		sleep(1);
-	}
-}
-
 int main(void) {
+	WINDOW *mainwin;
+
+	// initialize ncurses
+	if ((mainwin = initscr()) == NULL) {
+		fprintf(stderr, "Error initializing ncurses.\n");
+		exit(EXIT_FAILURE);
+	}
+	// start_color has to be called after initscr to enable colors
+	start_color();
+	
+	// initialize colors, which should be used to write stuff
+	// first find out if the terminal has colors and there are enough color pairs
+	if (has_colors() && can_change_color() && COLOR_PAIRS >= 10) {
+		// initialize all the color pairs:
+		// init(pair number, foreground, background)
+
+		init_pair(1, COLOR_BLACK, COLOR_YELLOW);
+		init_pair(2, COLOR_YELLOW
+	}
+
 	std::string info;
 	int child_stdout = -1;
 	pid_t child_pid = openChildProc(songInfoCommand, 0, &child_stdout);
@@ -61,8 +57,6 @@ int main(void) {
 
 	std::cout << info << std::endl;
 	
-	setupDisplay();
-
 	// name, artist, album, duration, player position
 	std::vector<std::string> songparts;
 	
@@ -78,7 +72,6 @@ int main(void) {
 	songparts.push_back(info); // this gets the very last element
 
 	
-
 	// set precision to a fixed 2 decimal places
 	std::cout.precision(2);
 	std::cout << std::fixed;
@@ -98,9 +91,10 @@ int main(void) {
 	std::cout << "Height: " << termHeight() << " rows.\n";
 	std::cout << "Width:  " << termWidth() << " columns.\n";
 	
-	scrollText("this");
+	// clean up, since this is a C library
+	delwin(mainwin);
+	endwin();
+	refresh();
 
-	// show cursor
-	printf("\033[?25h");
 	return 0;
 }
