@@ -29,9 +29,32 @@ bool isResizing = false; // whether or not the display is resizing
 bool willQuit = false; // when this is set to true, helper threads will end and can be joined
 
 // note: must keep in mind that LINES and COLS exist
-#define ROWS LINES // ROWS/COLS seems more reasonable to me
+#define ROWS LINES // ROWS/COLS seems more reasonable to me, alias ROWS to LINES
 
-void printTitleBar() {
+// prints song info after the titles that are placed in printTitles()
+void printSongInfo(std::string title, std::string album, std::string artist) {
+	/*
+	  Title: [title]
+	 Artist: [artist]
+	  Album: [album]
+	 */
+	
+	// get the max length of a line
+	int maxlen = COLS - 10 - 2; // this is the number of columns minus the two spaces on either end and the heading
+	
+	// TODO: add an ellipsis when the string is too long to show all of it
+	
+	// now I just have to print this information.
+	
+	// find out what rows to print on
+	int r1 = ROWS/2-1;
+	mvwaddnstr(stdscr, r1, 10, title.c_str(), maxlen);
+	mvwaddnstr(stdscr, r1+1, 10, artist.c_str(), maxlen);
+	mvwaddnstr(stdscr, r1+2, 10, album.c_str(), maxlen);
+}
+
+// prints the title bar
+void printTitles() {
 	std::string title = "";
 	for (int i = 0; i < COLS; i++)
 		title += " ";
@@ -39,22 +62,37 @@ void printTitleBar() {
 	// add the "itti" in the middle (or as close to the middle as possible)
 	title.replace(COLS/2-2, 4, "itti");
 	
+	attron(A_BOLD);
 	attron(COLOR_PAIR(BAR_PAIR));
 	mvwaddstr(stdscr, 0, 0, title.c_str());
 	attroff(COLOR_PAIR(BAR_PAIR));
 	
+	// now we can print the headings for song info
+	char titleheading[12];
+	sprintf(titleheading, "%10s", "Title: ");
+	char artistheading[12];
+	sprintf(artistheading, "%10s", "Artist: ");
+	char albumheading[12];
+	sprintf(albumheading, "%10s", "Album: ");
+	
+	// print the headings for title, artist, etc.
+	int rowNum0 = ROWS/2-1;
+	mvwaddstr(stdscr, rowNum0, 0, titleheading);
+	mvwaddstr(stdscr, rowNum0+1, 0, artistheading);
+	mvwaddstr(stdscr, rowNum0+2, 0, albumheading);
+	
+	attroff(A_BOLD);
 	refresh();
 }
 
 // this handles when the display is resized
 void handleResize(int sig) {
-	
 	endwin();
 	// Needs to be called after an endwin() so ncurses will initialize
 	// itself with the new terminal dimensions.
 	refresh();
 	clear();
-	printTitleBar();
+	printTitles();
 }
 
 // currentTime = player progress
@@ -73,20 +111,19 @@ std::string timeStr(double currentTime, double totalTime) {
 	tSeconds = (int)totalTime%60;
 	
 	char cString[10]; // holds the current time string
-	if (cHours > 0)
-		sprintf(cString, "%02d:%02d:%02d", cHours, cMinutes%60, cSeconds);
-	else if (cMinutes > 0)
-		sprintf(cString, "%02d:%02d", cMinutes%60, cSeconds);
-	else
-		sprintf(cString, "%02d", cSeconds);
-	
 	char tString[10]; // holds the total time string
-	if (tHours > 0)
+	if (tHours > 0) {
 		sprintf(tString, "%02d:%02d:%02d", tHours, tMinutes%60, tSeconds);
-	else if (tMinutes > 0)
+		sprintf(cString, "%02d:%02d:%02d", cHours, cMinutes%60, cSeconds);
+	}
+	else if (tMinutes > 0) {
 		sprintf(tString, "%02d:%02d", tMinutes%60, tSeconds);
-	else
-		sprintf(tString, "%02d", tSeconds);
+		sprintf(cString, "%02d:%02d", cMinutes%60, cSeconds);
+	}
+	else {
+		sprintf(tString, "0:%02d", tSeconds);
+		sprintf(cString, "0:%02d", cSeconds);
+	}
 	
 	char allParts[22];
 	sprintf(allParts, "%s/%s", cString, tString);
@@ -113,7 +150,7 @@ void updateDisplay() {
 					std::cout << "A different thing went wrong D:\n";
 			}
 			
-			// name, artist, album, duration, player position
+			// name, artist, album, duration, player position, sound volume
 			std::vector<std::string> songparts;
 			
 			// store the stuff there
@@ -140,6 +177,9 @@ void updateDisplay() {
 			size_t p = size_t( (std::stod(songparts[4])/std::stod(songparts[3])) * (double)barLen );
 			progBar = "  " + progBar + " [" + std::string(p, '#') + std::string(barLen - p, '-') + "]  ";
 			
+			// print the title and whatnot
+			printSongInfo(songparts[0], songparts[2], songparts[1]);
+			
 			// print it
 			attron(COLOR_PAIR(BAR_PAIR));
 			mvwaddstr(stdscr, ROWS-1, 0, progBar.c_str());
@@ -165,16 +205,25 @@ int main(void) {
 	sigaction(SIGWINCH, &sa, NULL);
 	
 	// color pairs
-	init_pair(BAR_PAIR, COLOR_WHITE, COLOR_YELLOW); // white on yellow
+	init_pair(BAR_PAIR, COLOR_WHITE, COLOR_BLUE); // white on yellow
 	init_pair(RESET_PAIR, -1, -1);
 	init_pair(GENERAL_PAIR, -1, -1);
 	
 	refresh();
 	
 	// draw the top bar
-	printTitleBar();
+	printTitles();
 	
 	std::thread t(updateDisplay);
+	
+	/*
+	 Proposed Controls:
+	 q - quit
+	 < - prev
+	 > - next
+	 ] or = - vol up
+	 [ or - - vol down
+	 */
 	
 	while (getch() != 27) {}
 	willQuit = true;
@@ -182,6 +231,6 @@ int main(void) {
 	t.join();
 	
 	endwin();
-
+	
 	return 0;
 }
