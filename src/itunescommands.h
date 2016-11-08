@@ -8,9 +8,9 @@
 /* Command to pause the player */
 #define PLAYER_PAUSE "osascript -e 'tell app \"itunes\" to pause'"
 /* Command to resume playback */
-#define PLAYER_PLAY "osascript -e 'tell app \"itunes\" to play'"
+#define PLAYER_PLAY "osascript -e 'tell app \"itunes\" to resume'"
 /* Command to toggle between playing and paused */
-#define PLAYER_TOGGLE "osascript -e 'tell app \"itunes\" to play'"
+#define PLAYER_TOGGLE "osascript -e 'tell app \"itunes\" to playpause'"
 /* Command to go to previous track */
 #define PLAYER_PREV "osascript -e 'tell app \"itunes\" to previous track'"
 /* Command to go to next track */
@@ -20,5 +20,7 @@
 #define PLAYER_STOP "osascript -e 'tell app \"itunes\" to stop'"
 /* Get the player state - "playing" "paused" "stopped" */
 #define PLAYER_STATE "osascript -e 'tell app \"itunes\" to player state as string'"
+/* Get the player volume from 0 to 100 */
+#define PLAYER_VOLUME "osascript -e 'tell app \"itunes\" to sound volume"
 /* Change the sound volume to percent (0-100) */
 #define SET_PLAYER_VOLUME(percent) (std::string("osascript -e 'tell app \"itunes\" to set sound volume to " + std::to_string(percent) + "'").c_str())

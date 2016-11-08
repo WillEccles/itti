@@ -191,6 +191,30 @@ void updateDisplay() {
 	}
 }
 
+// changes the volume of the player, if -5 is specified it lowers it
+void changeVol(int amt = 5) {
+	// first get the player's volume
+	std::string info;
+	int child_stdout = -1;
+	pid_t child_pid = openChildProc(PLAYER_VOLUME, 0, &child_stdout);
+	if (!child_pid)
+		std::cout << "A thing went wrong D:\n";
+	else {
+		char buff[5000];
+		if (readProcessOut(child_stdout, buff, sizeof(buff)))
+			info = std::string(buff);
+		else
+			std::cout << "A different thing went wrong D:\n";
+	}
+	
+	// first determine the sound volume as an integer
+	int currentVolume = std::stoi(info);
+	system(SET_PLAYER_VOLUME(currentVolume + amt));
+}
+
+#define increaseVolume() changeVol()
+#define decreaseVolume() changeVol(-5)
+
 int main(void) {
 	// initialize the screen
 	initscr();
@@ -219,6 +243,8 @@ int main(void) {
 	/*
 	 Proposed Controls:
 	 q - quit
+	 p - play/pause
+	 s - stop
 	 < - prev
 	 > - next
 	 ] or = - vol up
@@ -234,13 +260,24 @@ int main(void) {
 		switch(key) {
 			case 113: // q
 				inputLoop = false;
-				willQuit = true;
+				break;
+			case 112:
+				system(PLAYER_TOGGLE);
+				break;
+			case 115:
+				system(PLAYER_STOP);
 				break;
 			case 60: // <
 				system(PLAYER_PREV);
 				break;
 			case 62: // >
 				system(PLAYER_NEXT);
+				break;
+			case 93: // ]
+				increaseVolume();
+				break;
+			case 91: // [
+				decreaseVolume();
 				break;
 			default:
 				break;
