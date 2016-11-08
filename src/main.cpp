@@ -13,6 +13,7 @@
 #include <algorithm>
 #include "itunescommands.h" // itunes commands
 #include <time.h> // nanosleep(nanoseconds), nonbusy sleep
+#include <chrono> // for time to sleep in std::this_thread::sleep_for()
 
 #define BAR_PAIR 1
 #define RESET_PAIR 2
@@ -137,56 +138,53 @@ void updateDisplay() {
 		if (willQuit) return;
 		if (!isResizing) {
 			// this stuff grabs the song info
-			std::string info;
-			int child_stdout = -1;
-			pid_t child_pid = openChildProc(SONG_INFO, 0, &child_stdout);
-			if (!child_pid)
-				std::cout << "A thing went wrong D:\n";
-			else {
-				char buff[5000];
-				if (readProcessOut(child_stdout, buff, sizeof(buff)))
-					info = std::string(buff);
-				else
-					std::cout << "A different thing went wrong D:\n";
+			std::string info = commandOutput(SONG_INFO);
+			if (info != PROCESS_ERROR && info != OUTPUT_ERROR) {
+				// name, artist, album, duration, player position, sound volume
+				std::vector<std::string> songparts;
+				
+				// store the stuff there
+				std::string delimiter = "SONG_PART_DELIM";
+				size_t pos = 0;
+				std::string token;
+				while ((pos = info.find(delimiter)) != std::string::npos) {
+					token = info.substr(0, pos);
+					songparts.push_back(token);
+					info.erase(0, pos + delimiter.length());
+				}
+				songparts.push_back(info); // this gets the very last element
+				
+				std::string tStr = timeStr(std::stod(songparts[4]), std::stod(songparts[3]));
+				
+				// get the length of the progress bar, with 2 spaces of padding on each end + the time string and the two brackets to put on it
+				size_t barLen = COLS - 4 - tStr.length() - 1 - 2;
+				// 4 = padding
+				// 1 = space between time and bar
+				// 2 = for the brackets
+				
+				// set up the progress bar
+				std::string progBar(tStr);
+				size_t p = size_t( (std::stod(songparts[4])/std::stod(songparts[3])) * (double)barLen );
+				progBar = "  " + progBar + " [" + std::string(p, '#') + std::string(barLen - p, '-') + "]  ";
+				
+				// print the title and whatnot
+				printSongInfo(songparts[0], songparts[2], songparts[1]);
+				
+				// print it
+				attron(COLOR_PAIR(BAR_PAIR));
+				mvwaddstr(stdscr, ROWS-1, 0, progBar.c_str());
+				attroff(COLOR_PAIR(BAR_PAIR));
+				
+				refresh();
+				
+				// this is a good way of sleeping a single thread
+				// 1s is a c++14 addition, it's the same as std::chrono::seconds(1)
+				std::this_thread::sleep_for(1s);
+			} else if (info == PROCESS_ERROR) {
+				// there was an error starting the process
+			} else if (info == OUTPUT_ERROR) {
+				// there was an error getting output from process's stdout
 			}
-			
-			// name, artist, album, duration, player position, sound volume
-			std::vector<std::string> songparts;
-			
-			// store the stuff there
-			std::string delimiter = "SONG_PART_DELIM";
-			size_t pos = 0;
-			std::string token;
-			while ((pos = info.find(delimiter)) != std::string::npos) {
-				token = info.substr(0, pos);
-				songparts.push_back(token);
-				info.erase(0, pos + delimiter.length());
-			}
-			songparts.push_back(info); // this gets the very last element
-			
-			std::string tStr = timeStr(std::stod(songparts[4]), std::stod(songparts[3]));
-			
-			// get the length of the progress bar, with 2 spaces of padding on each end + the time string and the two brackets to put on it
-			size_t barLen = COLS - 4 - tStr.length() - 1 - 2;
-			// 4 = padding
-			// 1 = space between time and bar
-			// 2 = for the brackets
-			
-			// set up the progress bar
-			std::string progBar(tStr);
-			size_t p = size_t( (std::stod(songparts[4])/std::stod(songparts[3])) * (double)barLen );
-			progBar = "  " + progBar + " [" + std::string(p, '#') + std::string(barLen - p, '-') + "]  ";
-			
-			// print the title and whatnot
-			printSongInfo(songparts[0], songparts[2], songparts[1]);
-			
-			// print it
-			attron(COLOR_PAIR(BAR_PAIR));
-			mvwaddstr(stdscr, ROWS-1, 0, progBar.c_str());
-			attroff(COLOR_PAIR(BAR_PAIR));
-			
-			refresh();
-			sleep(1);
 		}
 	}
 }
@@ -240,6 +238,9 @@ int main(void) {
 	
 	std::thread t(updateDisplay);
 	
+	// detaches the thread. we don't need to use std::thread::join() since this means it will kill itself when it's done.
+	t.detach();
+	
 	/*
 	 Proposed Controls:
 	 q - quit
@@ -255,8 +256,8 @@ int main(void) {
 	int key = -1;
 	
 	// TODO: Replace system() calls
-	while (inputLoop && (key = getch()) != -(INT_MAX - 1)) {
-		// if the key isn't q and it's not -1 (aka no key)
+	while (inputLoop && (key = getch())) {
+		// if the key is a key
 		switch(key) {
 			case 113: // q
 				inputLoop = false;
@@ -283,9 +284,10 @@ int main(void) {
 				break;
 		}
 	}
-	willQuit = true; // kill the other threads
+	willQuit = true; // kills the other threads
 	
-	t.join();
+	//t.join(); we don't need this line, since we use std::thread::detach above, which means that the thread will keep executing until it's done
+	// this could be dangerous, so we have to make sure willQuit is true, otherwise the thread will be orphaned
 	
 	endwin();
 	

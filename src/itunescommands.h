@@ -1,3 +1,7 @@
+/* Command to find out if iTunes is running 
+   The result is a number, and if it's not 0 then it's running, if it's 0 then it's not.
+ */
+#define IS_ITUNES_RUNNING "osascript -e 'tell app \"System Events\" to count (every process whose name is \"iTunes\")'"
 /* Info of the song:
  * all numbers are in fractional seconds
  * "[songname]SONG_PART_DELIM[artist]SONG_PART_DELIM[album]SONG_PART_DELIM[duration]SONG_PART_DELIM[position]" is returned.

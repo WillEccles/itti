@@ -5,6 +5,10 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string>
+
+#define PROCESS_ERROR std::string("Error starting process.")
+#define OUTPUT_ERROR std::string("Error reading from process stdout.")
 
 // open a process "command" and eat its output
 // command: the command to run
@@ -17,3 +21,6 @@ pid_t openChildProc(const char *command, int *infp, int *outfp);
 // procStdOut: the handle associated with the process's stdout.
 // buffer: the buffer in which to store the output read
 ssize_t readProcessOut(int procStdOut, char* buffer, int buffwidth);
+
+// returns a string containing the ouput of a given command
+std::string commandOutput(const char *command, int *infp = 0);

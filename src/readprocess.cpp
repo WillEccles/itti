@@ -58,10 +58,27 @@ pid_t openChildProc(const char *command, int * infp, int * outfp)
 	return pid;
 }
 
-ssize_t readProcessOut(int procStdOut, char* buffer, int buffwidth) {
+ssize_t readProcessOut(int procStdOut, char* buffer, size_t buffwidth) {
 	if (!procStdOut)
 		return -1;
 	
 	ssize_t bytes_read = read(procStdOut, buffer, buffwidth);
 	return bytes_read;
+}
+
+std::string commandOutput(const char *command, int *infp) {
+	std::string output;
+	int child_stdout = -1;
+	pid_t child_pid = openChildProc(command, infp, &child_stdout);
+	if (!child_pid)
+		return PROCESS_ERROR; // error starting process
+	else {
+		char buff[output.max_size()];
+		if (readProcessOut(child_stdout, buff, output.max_size()))
+			output = std::string(buff);
+		else
+			return OUTPUT_ERROR;
+	}
+	
+	return output;
 }
