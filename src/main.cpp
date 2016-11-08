@@ -225,8 +225,28 @@ int main(void) {
 	 [ or - - vol down
 	 */
 	
-	while (getch() != 27) {}
-	willQuit = true;
+	bool inputLoop = true;
+	int key = -1;
+	
+	// TODO: Replace system() calls
+	while (inputLoop && (key = getch()) != -(INT_MAX - 1)) {
+		// if the key isn't q and it's not -1 (aka no key)
+		switch(key) {
+			case 113: // q
+				inputLoop = false;
+				willQuit = true;
+				break;
+			case 60: // <
+				system(PLAYER_PREV);
+				break;
+			case 62: // >
+				system(PLAYER_NEXT);
+				break;
+			default:
+				break;
+		}
+	}
+	willQuit = true; // kill the other threads
 	
 	t.join();
 	
