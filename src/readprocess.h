@@ -23,4 +23,4 @@ pid_t openChildProc(const char *command, int *infp, int *outfp);
 ssize_t readProcessOut(int procStdOut, char* buffer, int buffwidth);
 
 // returns a string containing the ouput of a given command
-std::string commandOutput(const char *command, int *infp = 0);
+std::string commandOutput(const char *command);

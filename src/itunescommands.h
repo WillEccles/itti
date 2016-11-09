@@ -25,6 +25,6 @@
 /* Get the player state - "playing" "paused" "stopped" */
 #define PLAYER_STATE "osascript -e 'tell app \"itunes\" to player state as string'"
 /* Get the player volume from 0 to 100 */
-#define PLAYER_VOLUME "osascript -e 'tell app \"itunes\" to sound volume"
+#define PLAYER_VOLUME "osascript -e 'tell app \"itunes\" to sound volume'"
 /* Change the sound volume to percent (0-100) */
 #define SET_PLAYER_VOLUME(percent) (std::string("osascript -e 'tell app \"itunes\" to set sound volume to " + std::to_string(percent) + "'").c_str())

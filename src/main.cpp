@@ -33,6 +33,7 @@ bool willQuit = false; // when this is set to true, helper threads will end and 
 #define ROWS LINES // ROWS/COLS seems more reasonable to me, alias ROWS to LINES
 
 // prints song info after the titles that are placed in printTitles()
+//
 void printSongInfo(std::string title, std::string album, std::string artist) {
 	/*
 	  Title: [title]
@@ -47,14 +48,16 @@ void printSongInfo(std::string title, std::string album, std::string artist) {
 	
 	// now I just have to print this information.
 	
+	std::string blank(maxlen, ' ');
+	
 	// find out what rows to print on
 	int r1 = ROWS/2-1;
-	mvwaddnstr(stdscr, r1, 10, title.c_str(), maxlen);
-	mvwaddnstr(stdscr, r1+1, 10, artist.c_str(), maxlen);
-	mvwaddnstr(stdscr, r1+2, 10, album.c_str(), maxlen);
+	mvwaddnstr(stdscr, r1, 10, std::string(maxlen, ' ').replace(0, title.length(), title).c_str(), maxlen);
+	mvwaddnstr(stdscr, r1+1, 10, std::string(maxlen, ' ').replace(0, artist.length(), artist).c_str(), maxlen);
+	mvwaddnstr(stdscr, r1+2, 10, std::string(maxlen, ' ').replace(0, album.length(), album).c_str(), maxlen);
 }
 
-// prints the title bar
+// prints the title bar and titles for song information
 void printTitles() {
 	std::string title = "";
 	for (int i = 0; i < COLS; i++)
@@ -99,37 +102,28 @@ void handleResize(int sig) {
 // currentTime = player progress
 // totalTime = song duration
 // both are in seconds
+// returns something like "-01:23" which means there is 1 minute 23 seconds left
 std::string timeStr(double currentTime, double totalTime) {
-	int cSeconds, cMinutes, cHours,
-		tSeconds, tMinutes, tHours;
+	double timeRemaining = totalTime - currentTime; // this is the time we want to show
 	
-	cMinutes = (int)currentTime/60;
-	cHours = cMinutes/60;
-	cSeconds = (int)currentTime%60;
+	int timeMinutes = (int)timeRemaining/60;
+	int timeHours = timeMinutes/60;
+	timeMinutes = timeMinutes%60;
+	int timeSeconds = (int)timeRemaining%60;
 	
-	tMinutes = (int)totalTime/60;
-	tHours = tMinutes/60;
-	tSeconds = (int)totalTime%60;
+	char timeString[10];
 	
-	char cString[10]; // holds the current time string
-	char tString[10]; // holds the total time string
-	if (tHours > 0) {
-		sprintf(tString, "%02d:%02d:%02d", tHours, tMinutes%60, tSeconds);
-		sprintf(cString, "%02d:%02d:%02d", cHours, cMinutes%60, cSeconds);
+	if (timeHours > 0) {
+		sprintf(timeString, "-%02d:%02d:%02d", timeHours, timeMinutes, timeSeconds);
 	}
-	else if (tMinutes > 0) {
-		sprintf(tString, "%02d:%02d", tMinutes%60, tSeconds);
-		sprintf(cString, "%02d:%02d", cMinutes%60, cSeconds);
+	else if (timeMinutes > 0) {
+		sprintf(timeString, "-%02d:%02d", timeMinutes, timeSeconds);
 	}
 	else {
-		sprintf(tString, "0:%02d", tSeconds);
-		sprintf(cString, "0:%02d", cSeconds);
+		sprintf(timeString, "-0:%02d", timeSeconds);
 	}
 	
-	char allParts[22];
-	sprintf(allParts, "%s/%s", cString, tString);
-	
-	return std::string(allParts);
+	return std::string(timeString);
 }
 
 // this is run by the thread in charge of updating the display
@@ -139,7 +133,7 @@ void updateDisplay() {
 		if (!isResizing) {
 			// this stuff grabs the song info
 			std::string info = commandOutput(SONG_INFO);
-			if (info != PROCESS_ERROR && info != OUTPUT_ERROR) {
+			if (info != PROCESS_ERROR && info != OUTPUT_ERROR && info.length() > 0) {
 				// name, artist, album, duration, player position, sound volume
 				std::vector<std::string> songparts;
 				
@@ -154,18 +148,23 @@ void updateDisplay() {
 				}
 				songparts.push_back(info); // this gets the very last element
 				
+				char volStr[10];
+				sprintf(volStr, " vol: %d%%", std::stoi(songparts[5]));
+				std::string volume(volStr);
+				
 				std::string tStr = timeStr(std::stod(songparts[4]), std::stod(songparts[3]));
 				
 				// get the length of the progress bar, with 2 spaces of padding on each end + the time string and the two brackets to put on it
-				size_t barLen = COLS - 4 - tStr.length() - 1 - 2;
+				// also subtract the length of the volume string from the end
+				size_t barLen = COLS - 4 - tStr.length() - 1 - 2 - volume.length();
 				// 4 = padding
 				// 1 = space between time and bar
 				// 2 = for the brackets
 				
 				// set up the progress bar
-				std::string progBar(tStr);
+				std::string progBar;
 				size_t p = size_t( (std::stod(songparts[4])/std::stod(songparts[3])) * (double)barLen );
-				progBar = "  " + progBar + " [" + std::string(p, '#') + std::string(barLen - p, '-') + "]  ";
+				progBar = "  " + tStr + " [" + std::string(p, '#') + std::string(barLen - p, '-') + "]" + volume + "  ";
 				
 				// print the title and whatnot
 				printSongInfo(songparts[0], songparts[2], songparts[1]);
@@ -192,22 +191,18 @@ void updateDisplay() {
 // changes the volume of the player, if -5 is specified it lowers it
 void changeVol(int amt = 5) {
 	// first get the player's volume
-	std::string info;
-	int child_stdout = -1;
-	pid_t child_pid = openChildProc(PLAYER_VOLUME, 0, &child_stdout);
-	if (!child_pid)
-		std::cout << "A thing went wrong D:\n";
-	else {
-		char buff[5000];
-		if (readProcessOut(child_stdout, buff, sizeof(buff)))
-			info = std::string(buff);
-		else
-			std::cout << "A different thing went wrong D:\n";
+	std::string info = commandOutput(PLAYER_VOLUME);
+	if (info != PROCESS_ERROR && info != OUTPUT_ERROR) {
+		// first determine the sound volume as an integer
+		int currentVolume = std::stoi(info);
+		system(SET_PLAYER_VOLUME(currentVolume + amt));
+	} else if (info == PROCESS_ERROR) {
+		std::cout << PROCESS_ERROR << std::endl;
+		// error running process
+	} else if (info == OUTPUT_ERROR) {
+		std::cout << OUTPUT_ERROR << std::endl;
+		// error getting output from process
 	}
-	
-	// first determine the sound volume as an integer
-	int currentVolume = std::stoi(info);
-	system(SET_PLAYER_VOLUME(currentVolume + amt));
 }
 
 #define increaseVolume() changeVol()
@@ -239,7 +234,7 @@ int main(void) {
 	std::thread t(updateDisplay);
 	
 	// detaches the thread. we don't need to use std::thread::join() since this means it will kill itself when it's done.
-	t.detach();
+	//t.detach();
 	
 	/*
 	 Proposed Controls:
@@ -274,9 +269,11 @@ int main(void) {
 			case 62: // >
 				system(PLAYER_NEXT);
 				break;
+			case 61: // = (aka the + key), falls through to ]
 			case 93: // ]
 				increaseVolume();
 				break;
+			case 45: // - (falls through to [)
 			case 91: // [
 				decreaseVolume();
 				break;
@@ -286,7 +283,7 @@ int main(void) {
 	}
 	willQuit = true; // kills the other threads
 	
-	//t.join(); we don't need this line, since we use std::thread::detach above, which means that the thread will keep executing until it's done
+	t.join(); //we don't need this line, since we use std::thread::detach above, which means that the thread will keep executing until it's done
 	// this could be dangerous, so we have to make sure willQuit is true, otherwise the thread will be orphaned
 	
 	endwin();

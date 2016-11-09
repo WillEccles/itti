@@ -66,15 +66,16 @@ ssize_t readProcessOut(int procStdOut, char* buffer, size_t buffwidth) {
 	return bytes_read;
 }
 
-std::string commandOutput(const char *command, int *infp) {
+std::string commandOutput(const char *command) {
 	std::string output;
 	int child_stdout = -1;
-	pid_t child_pid = openChildProc(command, infp, &child_stdout);
+	pid_t child_pid = openChildProc(command, 0, &child_stdout);
 	if (!child_pid)
 		return PROCESS_ERROR; // error starting process
 	else {
-		char buff[output.max_size()];
-		if (readProcessOut(child_stdout, buff, output.max_size()))
+		char buff[5000];
+		ssize_t status = readProcessOut(child_stdout, buff, sizeof(buff));
+		if (status >= 0)
 			output = std::string(buff);
 		else
 			return OUTPUT_ERROR;
