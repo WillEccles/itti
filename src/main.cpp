@@ -15,6 +15,7 @@
 #include <time.h> // nanosleep(nanoseconds), nonbusy sleep
 #include <chrono> // for time to sleep in std::this_thread::sleep_for()
 
+// color pairs
 #define BAR_PAIR 1
 #define RESET_PAIR 2
 #define GENERAL_PAIR 3
@@ -24,6 +25,9 @@
 #define MILLIS(m) m * 1000000
 // sleep in terms of milliseconds
 #define MSLEEP(ms) nanosleep(MILLIS(ms))
+
+// how often to refresh information
+#define REFRESH_INTERVAL 1s
 
 short fg_color, bg_color; // store colors
 bool isResizing = false; // whether or not the display is resizing
@@ -177,12 +181,14 @@ void updateDisplay() {
 				refresh();
 				
 				// this is a good way of sleeping a single thread
-				// 1s is a c++14 addition, it's the same as std::chrono::seconds(1)
-				std::this_thread::sleep_for(1s);
+				// 1s is a c++14 addition, it's the same as std::chrono::seconds(1) [see REFRESH_INTERVAL above]
+				std::this_thread::sleep_for(REFRESH_INTERVAL);
 			} else if (info == PROCESS_ERROR) {
 				// there was an error starting the process
+				std::cout << "Error starting process [line 188]" << std::endl;
 			} else if (info == OUTPUT_ERROR) {
 				// there was an error getting output from process's stdout
+				//std::cout << "Error getting output from process [line 191]" << std::endl;
 			}
 		}
 	}
@@ -250,7 +256,7 @@ int main(void) {
 	bool inputLoop = true;
 	int key = -1;
 	
-	// TODO: Replace system() calls
+	// I have decided to leave the system() calls because in this case I am not worried too much about malicious replacement of osascript
 	while (inputLoop && (key = getch())) {
 		// if the key is a key
 		switch(key) {
