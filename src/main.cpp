@@ -239,9 +239,6 @@ int main(void) {
 	
 	std::thread t(updateDisplay);
 	
-	// detaches the thread. we don't need to use std::thread::join() since this means it will kill itself when it's done.
-	//t.detach();
-	
 	/*
 	 Proposed Controls:
 	 q - quit
@@ -289,8 +286,7 @@ int main(void) {
 	}
 	willQuit = true; // kills the other threads
 	
-	t.join(); //we don't need this line, since we use std::thread::detach above, which means that the thread will keep executing until it's done
-	// this could be dangerous, so we have to make sure willQuit is true, otherwise the thread will be orphaned
+	t.join();
 	
 	endwin();
 	
